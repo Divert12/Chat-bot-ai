@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT-DZ Chat</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="chat-body">
+    <div class="chat-page">
+        <div class="chat-header">
+            <a href="/" class="back-button">← Retour</a>
+            <h1 class="chat-title">GPT-DZ</h1>
+            <p class="chat-subtitle">Votre assistant IA personnel</p>
+        </div>
+        <div id="chat-container">
+            <div class="bot message">
+                Bonjour ! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui ?
+                <br><br>
+                <small>Note: Les réponses peuvent prendre quelques secondes à générer. Merci de votre patience.</small>
+            </div>
+        </div>
+        <div id="input-area">
+            <input id="prompt" type="text" placeholder="Écrivez votre message ici..." autocomplete="off" />
+            <button class="btn" id="send-btn">Envoyer</button>
+        </div>
+        <div class="footer">
+            Powered by Boudjelel Mahdi | Mises à jour à venir
+        </div>
+    </div>
+
+    <script>
+        // Attendre que le DOM soit chargé
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatContainer = document.getElementById("chat-container");
+            const promptInput = document.getElementById("prompt");
+            const sendBtn = document.getElementById("send-btn");
+            const API_URL = '/api/chat'; // Using relative URL
+
+            // Disable button if input empty
+            promptInput.addEventListener("input", () => {
+                sendBtn.disabled = !promptInput.value.trim();
+            });
+
+            sendBtn.disabled = true;
+
+            async function ask() {
+                const prompt = promptInput.value.trim();
+                if (!prompt) return;
+
+                // Add user message to chat
+                addMessage(prompt, "user");
+
+                // Clear input and disable send while waiting
+                promptInput.value = "";
+                sendBtn.disabled = true;
+
+                // Add temporary bot message
+                const tempBotMessage = addMessage("⏳ Génération de la réponse en cours...", "bot");
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Remove temp message
+                    chatContainer.removeChild(tempBotMessage);
+
+                    // Add bot response
+                    if (data.error) {
+                        addMessage("❌ Erreur: " + data.error, "bot");
+                    } else {
+                        addMessage(data.response || "Je n'ai pas pu générer une réponse appropriée.", "bot");
+                    }
+                } catch (err) {
+                    chatContainer.removeChild(tempBotMessage);
+                    addMessage("❌ Erreur: Impossible de se connecter au serveur. Veuillez réessayer plus tard.", "bot");
+                }
+
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            function addMessage(text, sender) {
+                const msg = document.createElement("div");
+                msg.classList.add("message", sender);
+                msg.textContent = text;
+                chatContainer.appendChild(msg);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return msg;
+            }
+
+            // Send on Enter key
+            promptInput.addEventListener("keydown", e => {
+                if (e.key === "Enter" && !sendBtn.disabled) {
+                    e.preventDefault();
+                    ask();
+                }
+            });
+
+            // Attacher la fonction ask au bouton
+            sendBtn.addEventListener('click', ask);
+        });
+    </script>
+</body>
+
+</html>
